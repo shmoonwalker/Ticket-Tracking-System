@@ -24,12 +24,21 @@ public class UserRepository {
             );
 
     public List<User> findAll() {
-        String sql = "SELECT id, name, email FROM users";
+        String sql = """
+                SELECT id, name, email
+                FROM users
+                ORDER BY id
+                """;
+
         return jdbcTemplate.query(sql, userRowMapper);
     }
 
     public Optional<User> findById(Long id) {
-        String sql = "SELECT id, name, email FROM users WHERE id = ?";
+        String sql = """
+                SELECT id, name, email
+                FROM users
+                WHERE id = ?
+                """;
 
         try {
             User user = jdbcTemplate.queryForObject(sql, userRowMapper, id);
@@ -40,7 +49,11 @@ public class UserRepository {
     }
 
     public Optional<User> findByEmail(String email) {
-        String sql = "SELECT id, name, email FROM users WHERE email = ?";
+        String sql = """
+                SELECT id, name, email
+                FROM users
+                WHERE email = ?
+                """;
 
         try {
             User user = jdbcTemplate.queryForObject(sql, userRowMapper, email);
@@ -54,28 +67,28 @@ public class UserRepository {
         String sql = """
                 INSERT INTO users (name, email)
                 VALUES (?, ?)
-                RETURNING id
+                RETURNING id, name, email
                 """;
 
-        Long id = jdbcTemplate.queryForObject(
+        return jdbcTemplate.queryForObject(
                 sql,
-                Long.class,
+                userRowMapper,
                 user.name(),
                 user.email()
         );
-
-        return new User(id, user.name(), user.email());
     }
 
-    public void update(User user) {
+    public User update(User user) {
         String sql = """
-            UPDATE users
-            SET name = ?, email = ?
-            WHERE id = ?
-            """;
+                UPDATE users
+                SET name = ?, email = ?
+                WHERE id = ?
+                RETURNING id, name, email
+                """;
 
-        jdbcTemplate.update(
+        return jdbcTemplate.queryForObject(
                 sql,
+                userRowMapper,
                 user.name(),
                 user.email(),
                 user.id()

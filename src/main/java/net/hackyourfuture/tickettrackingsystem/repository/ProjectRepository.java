@@ -37,4 +37,12 @@ public class ProjectRepository {
                     rs.getInt("in_progress_tickets"),
                     rs.getInt("closed_tickets")
             );
+
+    public boolean existsById(Long id) {
+        String sql = "SELECT COUNT(*) FROM projects WHERE id = ?";
+
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, id);
+
+        return count != null && count > 0;
+    }
 }

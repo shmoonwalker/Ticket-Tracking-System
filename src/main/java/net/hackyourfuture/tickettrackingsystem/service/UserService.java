@@ -1,14 +1,14 @@
 package net.hackyourfuture.tickettrackingsystem.service;
 
-
 import lombok.RequiredArgsConstructor;
 import net.hackyourfuture.tickettrackingsystem.dto.request.CreateUserRequest;
 import net.hackyourfuture.tickettrackingsystem.dto.request.UpdateUserRequest;
+import net.hackyourfuture.tickettrackingsystem.dto.response.UserResponse;
 import net.hackyourfuture.tickettrackingsystem.exception.DuplicateEmailException;
+import net.hackyourfuture.tickettrackingsystem.exception.ResourceNotFoundException;
 import net.hackyourfuture.tickettrackingsystem.model.User;
 import net.hackyourfuture.tickettrackingsystem.repository.UserRepository;
 import org.springframework.stereotype.Service;
-import net.hackyourfuture.tickettrackingsystem.exception.ResourceNotFoundException;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,40 +19,38 @@ public class UserService {
 
     private final UserRepository userRepository;
 
-    public User createUser(CreateUserRequest request) {
+    public UserResponse createUser(CreateUserRequest request) {
         if (userRepository.findByEmail(request.email()).isPresent()) {
             throw new DuplicateEmailException(
                     "Email " + request.email() + " already exists");
         }
-        return userRepository.create(new User(
+
+        User createdUser = userRepository.create(new User(
                 null,
                 request.name(),
                 request.email()
         ));
+
+        return toUserResponse(createdUser);
     }
 
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
+    public List<UserResponse> getAllUsers() {
+        return userRepository.findAll()
+                .stream()
+                .map(this::toUserResponse)
+                .toList();
     }
 
-    public User getUserById(Long id) {
-        return userRepository.findById(id)
+    public UserResponse getUserById(Long id) {
+        User user = userRepository.findById(id)
                 .orElseThrow(() ->
-                       new ResourceNotFoundException(
+                        new ResourceNotFoundException(
                                 "User with id " + id + " not found"));
+
+        return toUserResponse(user);
     }
 
-    public void deleteUser(Long id) {
-        boolean deleted = userRepository.deleteById(id);
-
-        if (!deleted) {
-            throw new ResourceNotFoundException(
-                    "User with id " + id + " not found");
-        }
-    }
-
-    public User updateUser(Long id, UpdateUserRequest request) {
-
+    public UserResponse updateUser(Long id, UpdateUserRequest request) {
         User existingUser = userRepository.findById(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
@@ -73,8 +71,25 @@ public class UserService {
                 request.email()
         );
 
-        userRepository.update(updatedUser);
+        User savedUser = userRepository.update(updatedUser);
 
-        return updatedUser;
+        return toUserResponse(savedUser);
+    }
+
+    public void deleteUser(Long id) {
+        boolean deleted = userRepository.deleteById(id);
+
+        if (!deleted) {
+            throw new ResourceNotFoundException(
+                    "User with id " + id + " not found");
+        }
+    }
+
+    private UserResponse toUserResponse(User user) {
+        return new UserResponse(
+                user.id(),
+                user.name(),
+                user.email()
+        );
     }
 }
